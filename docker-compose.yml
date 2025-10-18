@@ -1,0 +1,17 @@
+version: "3"
+services:
+  besu-node:
+    image: hyperledger/besu:latest
+    container_name: besu-node
+    command:
+      - --network=dev
+      - --rpc-http-enabled
+      - --rpc-http-port=8545
+      - --rpc-http-host=0.0.0.0
+      - --host-allowlist=*
+      - --data-path=/data
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    volumes:
+      - ./besu:/data
