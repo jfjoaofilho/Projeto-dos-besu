@@ -1,4 +1,3 @@
-```markdown
 # 🧠 Projeto de Simulação de Ataque DoS/DDoS em Hyperledger Besu
 
 Este projeto tem como objetivo demonstrar de forma **controlada e educativa** como **ataques de negação de serviço (DoS e DDoS)** podem afetar o desempenho de uma **rede blockchain privada** baseada em **Hyperledger Besu**, observando especialmente o impacto no **tempo médio de resposta das chamadas RPC**.
